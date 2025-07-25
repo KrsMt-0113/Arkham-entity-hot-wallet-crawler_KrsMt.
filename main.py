@@ -11,6 +11,8 @@ import platform
 import sys
 import os
 
+is_github = os.getenv("GITHUB_ACTIONS") == "true"
+
 if getattr(sys, 'frozen', False):
     base_path = os.path.dirname(sys.executable)
 else:
@@ -69,7 +71,9 @@ def fetch_chain_data(chain, entity, num, headers, cookies, Entity, offset_limit,
             offset = i * limit
             pre_count = len(merged_result)
             url = f'https://api.arkm.com/transfers?base={entity}&flow=out&usdGte=1&sortKey=time&sortDir=desc&limit={limit}&offset={offset}&tokens=&chains={chain}'
-            response = requests.get(url, headers=headers, cookies=cookies, timeout=100)
+            response = requests.get(url, headers=headers, cookies=cookies, timeout=15)
+            print(f"[{Entity}] 请求 {url} → 状态码: {response.status_code}")
+            response.raise_for_status()
             transfers = response.json().get('transfers')
             if not transfers:
                 break
@@ -82,6 +86,7 @@ def fetch_chain_data(chain, entity, num, headers, cookies, Entity, offset_limit,
 
 
 if __name__ == "__main__":
+    print("✅ Arkham 热钱包爬虫程序开始运行")
     # print("\033]0;Arkham Hot Wallet Crawler @ KrsMt.\007")
     file1_path = os.path.join(base_path, "curl.txt")
 
@@ -153,7 +158,8 @@ if __name__ == "__main__":
             partial = fetch_chain_data(chain, entity, num, headers, cookies, Entity, offset_limit, show_chain_status=True)
             result.update(partial)
             print(f"[{Entity}] {chain} 链共找到 {len(partial)} 个热钱包。")
-            time.sleep(1)
+            if not is_github:
+                time.sleep(1)
             # clear_console()
 
         # 按 Chain 顺序排序

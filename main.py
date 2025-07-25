@@ -71,7 +71,7 @@ def fetch_chain_data(chain, entity, num, headers, cookies, Entity, offset_limit,
             offset = i * limit
             pre_count = len(merged_result)
             url = f'https://api.arkm.com/transfers?base={entity}&flow=out&usdGte=1&sortKey=time&sortDir=desc&limit={limit}&offset={offset}&tokens=&chains={chain}'
-            response = requests.get(url, headers=headers, cookies=cookies, timeout=15)
+            response = requests.get(url, headers=headers, cookies=cookies, timeout=150)
             print(f"[{Entity}] 请求 {url} → 状态码: {response.status_code}")
             response.raise_for_status()
             transfers = response.json().get('transfers')

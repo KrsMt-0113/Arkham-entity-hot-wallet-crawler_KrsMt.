@@ -19,10 +19,10 @@ else:
 
 
 def clear_console():
-    if platform.system() == 'Windows':
-        os.system('cls')  # Windows
-    else:
-        os.system('clear')  # macOS / Linux
+    # if platform.system() == 'Windows':
+    #     os.system('cls')  # Windows
+    # else:
+    #     os.system('clear')  # macOS / Linux
     title = "========= Arkham Entity Hot Wallet Crawler @ KrsMt. ========="
     print(title)
 
@@ -82,7 +82,7 @@ def fetch_chain_data(chain, entity, num, headers, cookies, Entity, offset_limit,
 
 
 if __name__ == "__main__":
-    print("\033]0;Arkham Hot Wallet Crawler @ KrsMt.\007")
+    # print("\033]0;Arkham Hot Wallet Crawler @ KrsMt.\007")
     file1_path = os.path.join(base_path, "curl.txt")
 
     config_path = os.path.join(base_path, "config.txt")
@@ -129,7 +129,7 @@ if __name__ == "__main__":
         curl_text = f.read()
 
     headers, cookies = parse_curl(curl_text)
-    clear_console()
+    # clear_console()
 
     args_path = os.path.join(base_path, "args.txt")
     if not os.path.exists(args_path):
@@ -154,7 +154,7 @@ if __name__ == "__main__":
             result.update(partial)
             print(f"[{Entity}] {chain} 链共找到 {len(partial)} 个热钱包。")
             time.sleep(1)
-            clear_console()
+            # clear_console()
 
         # 按 Chain 顺序排序
         result = [result[key] for chain in Chain for key in result if result[key]['chain'] == chain]

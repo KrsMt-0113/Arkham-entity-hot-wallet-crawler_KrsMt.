@@ -136,9 +136,10 @@ if __name__ == "__main__":
     headers, cookies = parse_curl(curl_text)
     # clear_console()
 
-    args_path = os.path.join(base_path, "args.txt")
+    args_filename = sys.argv[1] if len(sys.argv) > 1 else "args.txt"
+    args_path = os.path.join(base_path, args_filename)
     if not os.path.exists(args_path):
-        print("❌ 缺少 args.txt 文件，请在同目录下提供，格式为每行一个 Entity,entity")
+        print("❌ 缺少 {args_filename} 文件，请在同目录下提供，格式为每行一个 Entity,entity")
         sys.exit(1)
 
     with open(args_path, "r", encoding="utf-8") as arg_file:

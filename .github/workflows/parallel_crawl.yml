@@ -1,0 +1,33 @@
+name: Parallel Arkham Crawler
+
+on:
+  workflow_dispatch:
+
+jobs:
+  crawl:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        entity: [binance, okx, kucoin]  # ← 你可以根据 args_*.txt 文件名修改这里
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.11
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run crawler for ${{ matrix.entity }}
+        run: python main.py args_${{ matrix.entity }}.txt
+
+      - name: Upload result for ${{ matrix.entity }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.entity }}-results
+          path: result/

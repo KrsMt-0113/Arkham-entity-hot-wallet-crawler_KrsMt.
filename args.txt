@@ -1,1 +1,50 @@
+Binance,binance
 OKX,okx
+Bybit,bybit
+Bitget,bitget
+Gate.io,gate-io
+Deribit,deribit
+KuCoin,kucoin
+XT.com,xt-com
+Kraken,kraken
+BingX,bingx
+HTX,huobi
+Deepcoin,deepcoin
+MEXC,mexc
+Bitfinex,bitfinex
+BitMart,bitmart
+Gemini,gemini
+Crypto.com,crypto-com
+bitFlyer,bitflyer
+LBank,lbank
+WEEX,weex
+CoinW,coinw
+DigiFinex,digifinex
+AscendEX,ascendex
+Biconomy,biconomy
+BTCC,btcc
+Tapbit,tapbit
+Ourbit,ourbit
+OrangeX,orangex
+Bitunix,bitunix
+FameEx,fameex
+BitVenus (BVOX),bitvenus
+WhiteBIT,whitebit
+Pionex,pionex
+HashKey Exchange,hashkey-exchange
+Hotcoin,hotcoin
+Bitrue,bitrue
+Phemex,phemex
+BitMEX,bitmex
+BTSE,btse
+CoinEx,coinex
+Backpack Exchange,backpack-exchange
+WOO Network,woo-network
+KoinBay,koinbay
+BloFin,blofin
+Poloniex,poloniex
+Delta Exchange,delta-exchange
+BITmarkets,bitmarkets
+HitBTC,hitbtc
+Websea,websea
+Flipster,flipster

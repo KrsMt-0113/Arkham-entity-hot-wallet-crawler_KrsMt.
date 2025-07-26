@@ -1,15 +1,26 @@
 # 2025.7.24
-# version: 2.0
+# version: 3.0
 # 自行获取cURL存入curl.txt即可。
-# num不建议超过1500，后续可加入翻页(offset)方法
 
 import re
 import time
 import requests
 import csv
-import platform
+
 import sys
 import os
+import concurrent.futures
+import builtins
+from datetime import datetime
+
+original_print = print
+
+def timestamped_print(*args, **kwargs):
+    now = datetime.now().strftime("[%Y-%m-%d %H:%M:%S]")
+    original_print(now, *args, **kwargs)
+
+# 替换全局 print
+builtins.print = timestamped_print
 
 is_github = os.getenv("GITHUB_ACTIONS") == "true"
 
@@ -61,28 +72,24 @@ def extract_hot_wallet(addr_info, target, name):
             'label': label
         }
 
-def fetch_chain_data(chain, entity, num, headers, cookies, Entity, offset_limit, show_chain_status=False):
+def fetch_chain_data(chain, entity, num, headers, cookies, Entity, offset_limit):
     merged_result = {}
     limit = num
     try:
         for i in range(offset_limit):
-            if show_chain_status:
-                print(f"[{Entity}] 正在查询 {chain} 链的第 {i + 1} 页信息...")
             offset = i * limit
-            pre_count = len(merged_result)
+            time.sleep(1)
             url = f'https://api.arkm.com/transfers?base={entity}&flow=out&usdGte=1&sortKey=time&sortDir=desc&limit={limit}&offset={offset}&tokens=&chains={chain}'
-            response = requests.get(url, headers=headers, cookies=cookies, timeout=150)
-            print(f"[{Entity}] 请求 {url} → 状态码: {response.status_code}")
-            response.raise_for_status()
+            response = requests.get(url, headers=headers, cookies=cookies, timeout=20)
             transfers = response.json().get('transfers')
             if not transfers:
                 break
             for tx in transfers:
                 extract_hot_wallet(tx.get('fromAddress', {}), merged_result, Entity)
+        return chain, merged_result
     except Exception as e:
-        print(f"[{chain}] 请求 offset={offset} 时出错: {e}")
-
-    return merged_result
+        print(f"[{Entity}] {chain} 链出错：{e}")
+        return chain, None
 
 
 if __name__ == "__main__":
@@ -117,7 +124,7 @@ if __name__ == "__main__":
         'dogecoin',
         'ton',
         'base',
-        'arbitrum',
+        'arbitrum_one',
         'sonic',
         'optimism',
         'mantle',
@@ -136,10 +143,9 @@ if __name__ == "__main__":
     headers, cookies = parse_curl(curl_text)
     # clear_console()
 
-    args_filename = sys.argv[1] if len(sys.argv) > 1 else "args.txt"
-    args_path = os.path.join(base_path, args_filename)
+    args_path = os.path.join(base_path, "args.txt")
     if not os.path.exists(args_path):
-        print("❌ 缺少 {args_filename} 文件，请在同目录下提供，格式为每行一个 Entity,entity")
+        print("❌ 缺少 args.txt 文件，请在同目录下提供，格式为每行一个 Entity,entity")
         sys.exit(1)
 
     with open(args_path, "r", encoding="utf-8") as arg_file:
@@ -152,16 +158,31 @@ if __name__ == "__main__":
             print(f"❌ 格式错误：{line}")
             return
         Entity, entity = [x.strip() for x in line.split(',', 1)]
-        result = {}
 
-        for idx, chain in enumerate(Chain, 1):
-            print(f"\n[{Entity}] 正在查询第 {idx}/18 条链：{chain}...")
-            partial = fetch_chain_data(chain, entity, num, headers, cookies, Entity, offset_limit, show_chain_status=True)
-            result.update(partial)
-            print(f"[{Entity}] {chain} 链共找到 {len(partial)} 个热钱包。")
-            if not is_github:
-                time.sleep(1)
-            # clear_console()
+        result = {}
+        # Track which chains have completed successfully
+        completed_chains = set()
+        # Use a thread pool for all chains, keep retrying failed chains immediately
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            # Map: future -> chain
+            future_to_chain = {
+                executor.submit(fetch_chain_data, chain, entity, num, headers, cookies, Entity, offset_limit): chain
+                for chain in Chain
+            }
+            while future_to_chain:
+                # Wait for any future to complete
+                done, _ = concurrent.futures.wait(future_to_chain, return_when=concurrent.futures.FIRST_COMPLETED)
+                for future in done:
+                    chain = future_to_chain.pop(future)
+                    ch, partial = future.result()
+                    if partial is None:
+                        # Resubmit this chain immediately
+                        new_future = executor.submit(fetch_chain_data, ch, entity, num, headers, cookies, Entity, offset_limit)
+                        future_to_chain[new_future] = ch
+                    else:
+                        result.update(partial)
+                        completed_chains.add(ch)
+                        print(f"[{Entity}] {ch} 链共找到 {len(partial)} 个热钱包。")
 
         # 按 Chain 顺序排序
         result = [result[key] for chain in Chain for key in result if result[key]['chain'] == chain]

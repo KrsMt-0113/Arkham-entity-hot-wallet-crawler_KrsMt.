@@ -1,4 +1,4 @@
-# Arkm热钱包爬虫
+# Arkm热钱包爬虫 @ KrsMt.
 
 1. 填写配置文件
   - 1. `args.txt`

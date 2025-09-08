@@ -27,16 +27,6 @@ if getattr(sys, 'frozen', False):
 else:
     base_path = os.path.abspath(".")
 
-
-
-# def clear_console():
-#     # if platform.system() == 'Windows':
-#     #     os.system('cls')  # Windows
-#     # else:
-#     #     os.system('clear')  # macOS / Linux
-#     title = "========= Arkham Entity Hot Wallet Crawler @ KrsMt. ========="
-#     print(title)
-
 def extract_hot_wallet(addr_info, target, name):
     if (
         addr_info.get('arkhamEntity', {}).get('name') == name and
@@ -78,10 +68,13 @@ def fetch_chain_data(chain, entity, num, headers, Entity, offset_limit):
             if not transfers:
                 break
             for tx in transfers:
-                extract_hot_wallet(tx.get('fromAddress', {}), merged_result, Entity)
+                if tx.get('fromAddressOwner'):
+                    extract_hot_wallet(tx.get('fromAddressOwner', {}), merged_result, Entity)
+                else:
+                    extract_hot_wallet(tx.get('fromAddress', {}), merged_result, Entity)
         return chain, merged_result
     except Exception as e:
-        print(f"[{Entity}] {chain} 链出错：{e}")
+        print(f"[{Entity}] {chain} Failed：{e}")
         return chain, None
 
 
@@ -130,12 +123,12 @@ if __name__ == "__main__":
     ]
 
     headers = {
-        "API-Key": "your_api_key"
+        "API-Key": "83d3cacd-1104-41fa-98f7-39da1dbb786d"
     }
 
     args_path = os.path.join(base_path, "args.txt")
     if not os.path.exists(args_path):
-        print("[wrong] 缺少 args.txt 文件，请在同目录下提供，格式为每行一个 Entity,entity")
+        print("[wrong] can't find 'args.txt' (see README.md)")
         sys.exit(1)
 
     with open(args_path, "r", encoding="utf-8") as arg_file:
@@ -144,9 +137,6 @@ if __name__ == "__main__":
     num_chains = len(Chain)
 
     def process_entity(line, position):
-        if ',' not in line:
-            print(f"[wrong] 格式错误：{line}")
-            return
         Entity, entity = [x.strip() for x in line.split(',', 1)]
 
         result = {}
@@ -167,7 +157,7 @@ if __name__ == "__main__":
                     else:
                         result.update(partial)
                         completed_chains.add(ch)
-                        print(f"[{Entity}] {ch} 链共找到 {len(partial)} 个热钱包。")
+                        print(f"[{Entity}] {ch} chain {len(partial)} hot wallets found.")
 
         result = [result[key] for chain in Chain for key in result if result[key]['chain'] == chain]
 

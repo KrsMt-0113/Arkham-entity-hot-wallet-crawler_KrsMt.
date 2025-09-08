@@ -123,7 +123,7 @@ if __name__ == "__main__":
     ]
 
     headers = {
-        "API-Key": "83d3cacd-1104-41fa-98f7-39da1dbb786d"
+        "API-Key": "YOUR_API_KEY"
     }
 
     args_path = os.path.join(base_path, "args.txt")

@@ -1,6 +1,6 @@
 # 2025.8.10
-# version: 3.1
-# 无需cURL, 直接用 api-key 访问 Arkham Intelligence API
+# version: 4.0
+# 使用 ArkhamSDK 签名头访问 https://api.arkm.com，无需 API-Key
 
 import time
 import requests
@@ -8,9 +8,10 @@ import csv
 
 import sys
 import os
-import concurrent.futures
 import builtins
 from datetime import datetime
+
+from arkham_sdk import ArkhamSDK
 
 original_print = print
 
@@ -26,6 +27,10 @@ if getattr(sys, 'frozen', False):
     base_path = os.path.dirname(sys.executable)
 else:
     base_path = os.path.abspath(".")
+
+# 全局 SDK 实例，用于生成签名头
+arkham_sdk = ArkhamSDK()
+
 
 def extract_hot_wallet(addr_info, target, name):
     if (
@@ -45,14 +50,16 @@ def extract_hot_wallet(addr_info, target, name):
             'label': label
         }
 
-def fetch_chain_data(chain, entity, num, headers, Entity, offset_limit):
+
+def fetch_chain_data(chain, entity, num, Entity, offset_limit):
+    """单链顺序拉取 transfers，使用 Arkham 签名头。"""
     merged_result = {}
     limit = num
     try:
         for i in range(offset_limit):
             offset = i * limit
             time.sleep(1)
-            url = "https://api.arkhamintelligence.com/transfers"
+            url = f"{arkham_sdk.base_url}/transfers"
             querystring = {
                 "base": entity,
                 "chains": chain,
@@ -63,7 +70,19 @@ def fetch_chain_data(chain, entity, num, headers, Entity, offset_limit):
                 "sortDir": "desc",
                 "usdGte": 1,
             }
-            response = requests.get(url, headers=headers, params=querystring)
+            headers = arkham_sdk.build_headers(url)
+            response = requests.get(
+                url,
+                headers=headers,
+                params=querystring,
+                timeout=arkham_sdk.timeout,
+            )
+            if response.status_code != 200:
+                print(f"[{Entity}] {chain} HTTP {response.status_code}: {response.text[:200]}")
+                # 4xx 视为永久失败，跳过该链；5xx 视为可重试
+                if 400 <= response.status_code < 500:
+                    return chain, merged_result
+                return chain, None
             transfers = response.json().get('transfers')
             if not transfers:
                 break
@@ -82,24 +101,9 @@ if __name__ == "__main__":
     print("Arkm Entity Hot Wallet Crawler @ KrsMt.")
     print("process start")
 
-    config_path = os.path.join(base_path, "config.txt")
-    num = 1000
-    offset_limit = 3
-
-    if os.path.exists(config_path):
-        with open(config_path, "r", encoding="utf-8") as f:
-            for line in f:
-                line = line.strip()
-                if line.startswith("num="):
-                    try:
-                        num = int(line.split("=", 1)[1])
-                    except:
-                        pass
-                elif line.startswith("offset="):
-                    try:
-                        offset_limit = int(line.split("=", 1)[1])
-                    except:
-                        pass
+    # 查询参数固定为 3000 * 5
+    num = 1500
+    offset_limit = 10
 
     Chain = [
         'bitcoin',
@@ -122,10 +126,6 @@ if __name__ == "__main__":
         'flare'
     ]
 
-    headers = {
-        "API-Key": "YOUR_API_KEY"
-    }
-
     args_path = os.path.join(base_path, "args.txt")
     if not os.path.exists(args_path):
         print("[wrong] can't find 'args.txt' (see README.md)")
@@ -134,30 +134,20 @@ if __name__ == "__main__":
     with open(args_path, "r", encoding="utf-8") as arg_file:
         lines = [line.strip() for line in arg_file if line.strip()]
 
-    num_chains = len(Chain)
-
     def process_entity(line, position):
         Entity, entity = [x.strip() for x in line.split(',', 1)]
 
         result = {}
-        completed_chains = set()
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            future_to_chain = {
-                executor.submit(fetch_chain_data, chain, entity, num, headers, Entity, offset_limit): chain
-                for chain in Chain
-            }
-            while future_to_chain:
-                done, _ = concurrent.futures.wait(future_to_chain, return_when=concurrent.futures.FIRST_COMPLETED)
-                for future in done:
-                    chain = future_to_chain.pop(future)
-                    ch, partial = future.result()
-                    if partial is None:
-                        new_future = executor.submit(fetch_chain_data, ch, entity, num, headers, Entity, offset_limit)
-                        future_to_chain[new_future] = ch
-                    else:
-                        result.update(partial)
-                        completed_chains.add(ch)
-                        print(f"[{Entity}] {ch} chain {len(partial)} hot wallets found.")
+        # 单线程顺序遍历每条链，失败则重试
+        for chain in Chain:
+            while True:
+                ch, partial = fetch_chain_data(chain, entity, num, Entity, offset_limit)
+                if partial is None:
+                    print(f"[{Entity}] {ch} retry...")
+                    continue
+                result.update(partial)
+                print(f"[{Entity}] {ch} chain {len(partial)} hot wallets found.")
+                break
 
         result = [result[key] for chain in Chain for key in result if result[key]['chain'] == chain]
 

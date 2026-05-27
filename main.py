@@ -34,12 +34,13 @@ arkham_sdk = ArkhamSDK()
 
 def extract_hot_wallet(addr_info, target, name):
     if (
-        addr_info.get('arkhamEntity', {}).get('name') == name and
-        addr_info.get('arkhamLabel', {}).get('name') == 'Hot Wallet'
+        addr_info.get('arkhamEntity', {}).get('name') == name
+        # addr_info.get('arkhamEntity', {}).get('name') == name and
+        # addr_info.get('arkhamLabel', {}).get('name') == 'Hot Wallet'
     ):
         address = addr_info['address']
         chain = addr_info.get('chain')
-        label = addr_info['arkhamLabel']['name']
+        label = addr_info.get('arkhamLabel', {}).get('name')
         arkm_url = f"https://intel.arkm.com/explorer/address/{address}"
 
         key = f"{address}@{chain}"
@@ -102,28 +103,28 @@ if __name__ == "__main__":
     print("process start")
 
     # 查询参数固定为 3000 * 5
-    num = 1500
+    num = 1000
     offset_limit = 10
 
     Chain = [
         'bitcoin',
-        'ethereum',
-        'solana',
-        'tron',
-        'dogecoin',
-        'ton',
-        'base',
-        'arbitrum_one',
-        'sonic',
-        'optimism',
-        'mantle',
-        'avalanche',
-        'bsc',
-        'linea',
-        'polygon',
-        'blast',
-        'manta',
-        'flare'
+        # 'ethereum',
+        # 'solana',
+        # 'tron',
+        # 'dogecoin',
+        # 'ton',
+        # 'base',
+        # 'arbitrum_one',
+        # 'sonic',
+        # 'optimism',
+        # 'mantle',
+        # 'avalanche',
+        # 'bsc',
+        # 'linea',
+        # 'polygon',
+        # 'blast',
+        # 'manta',
+        # 'flare'
     ]
 
     args_path = os.path.join(base_path, "args.txt")

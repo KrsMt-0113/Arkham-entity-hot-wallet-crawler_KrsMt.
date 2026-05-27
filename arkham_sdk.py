@@ -19,7 +19,7 @@ class ArkhamSDK:
         self,
         base_url: str = ARKHAM_API_BASE,
         webapp_client_key: str = ARKHAM_WEBAPP_CLIENT_KEY,
-        timeout: int = 10,
+        timeout: int = 100,
     ):
         self.base_url = base_url
         self.webapp_client_key = webapp_client_key
